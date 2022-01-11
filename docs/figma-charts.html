@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Figma charts</title>
+    <meta name="description" content="Turn Figma prototypes into statecharts.">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+    <header>
+        <h1>
+            Figma charts
+        </h1>
+    </header>
+    <main>
+        <section>
+            <div>
+                <div class="inputs-container">
+                    <input id="input-token" type="password" placeholder="Personal Figma token">
+                </div>
+
+                <div class="inputs-container">
+                    <input id="input-url-file" type="url" placeholder="Place your file URL here">
+                    <input id="input-button-submit" type="button" value="Go!" disabled="true">
+                </div>
+
+                <div class="inputs-container">
+                    <label for="select-figma-page">Select page:</label>
+                    <select name="page" id="select-page" disabled="true"></select>
+                    <input id="input-button-page" type="button" value="Select" disabled="true">
+                </div>
+            </div>
+
+            <div class="hidden" id="output-container">
+                <h2>
+                    Interactive statechart
+                </h2>
+                <div id="output-states"></div>
+                <h2>
+                    Code for Sketch.systems
+                </h2>
+                <div id="output-code-container">
+                    <pre><code id="output-code"></code></pre>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        const FigmaImport = (function () {
+            const pattern = /^(?:https:\/\/)?(?:www\.)?figma\.com\/(file|proto)\/([0-9a-zA-Z]{22,128})(?:\/([^\?\n\r\/]+)?((?:\?[^\/]*?node-id=([^&\n\r\/]+))?[^\/]*?)(\/duplicate)?)?$/;
+
+            let tokenInputField = null,
+                urlInputField = null,
+                submitButton = null,
+                pageSelector = null,
+                pageSelectButton = null;
+
+            let url = null, token = null, data = null, elements = {}, levelsData = [];
+
+            let requestParams = {
+                'headers': {
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            init();
+
+            function init() {
+                tokenInputField = document.getElementById('input-token');
+                urlInputField = document.getElementById('input-url-file');
+                submitButton = document.getElementById('input-button-submit');
+
+                submitButton.addEventListener('click', hardSubmit);
+                tokenInputField.addEventListener('input', softSubmit);
+                urlInputField.addEventListener('input', softSubmit);
+                urlInputField.addEventListener('keyup', inputSubmit);
+
+                try {
+                    let savedUrl = localStorage['figmaUrl'];
+                    let savedToken = localStorage['figmaToken'];
+                    if (savedUrl && savedToken) {
+                        urlInputField.value = savedUrl;
+                        tokenInputField.value = savedToken;
+                        softSubmit();
+                    }
+                } catch (e) { console.log(e); }
+
+                pageSelectButton = document.getElementById('input-button-page');
+                pageSelector = document.getElementById('select-page');
+                pageSelectButton.addEventListener('click', onPageSelected);
+
+            }
+
+            function inputSubmit(e) {
+                if (e.key === 'Enter') {
+                    hardSubmit();
+                }
+            }
+
+            function validateInputs() {
+                token = tokenInputField.value.trim();
+                if (token) {
+                    requestParams.headers['X-FIGMA-TOKEN'] = token;
+                } else {
+                    console.warn('Invalid token:', urlInputField.token);
+                }
+
+                url = urlInputField.value.trim().match(pattern);
+                if (!url) {
+                    console.warn('Invalid link:', urlInputField.value);
+                }
+
+                if (token && url) {
+                    submitButton.disabled = false;
+                    return true;
+                } else {
+                    submitButton.disabled = true;
+                    return false;
+                }
+            }
+
+
+            function hardSubmit() {
+                let isReady = validateInputs();
+                if (isReady) {
+                    localStorage['figmaToken'] = token;
+                    localStorage['figmaUrl'] = url[0];
+
+                    submitButton.disabled = true;
+                    fetchFile();
+                }
+            }
+
+            function softSubmit() {
+                validateInputs();
+            }
+
+            function fetchFile() {
+                fetch('https://api.figma.com/v1/files/' + url[2], requestParams)
+                    .then(function (response) {
+                        return response.json();
+                    })
+                    .then(function (fileJson) {
+                        if (fileJson.err !== undefined && fileJson.err !== null) {
+                            console.error(fileJson.err);
+                        } else {
+                            // Successful fetch 🎉
+                            data = fileJson;
+                            preparePageSelector();
+                        }
+                    });
+                pageSelector.disabled = true;
+                pageSelectButton.disabled = true;
+                document.getElementById('output-container')
+                    .classList.add('hidden');
+            }
+
+            function preparePageSelector() {
+                removeChildren(pageSelector);
+                let pages = data.document.children;
+                let pageIds = [];
+                for (let i = 0; i < pages.length; i++) {
+                    if (pages[i].type === 'CANVAS') {
+                        let option = document.createElement('option');
+                        let pageId = pages[i].id;
+                        option.setAttribute("value", pageId);
+                        option.innerHTML = pages[i].name;
+                        pageSelector.appendChild(option);
+                        if (url[5] === pageId) {
+                            pageSelector.value = pageId;
+                        }
+                    }
+                }
+                pageSelector.disabled = false;
+                pageSelectButton.disabled = false;
+            }
+
+            function getSelectedPage() {
+                let pages = data.document.children;
+                for (let i = 0; i < pages.length; i++) {
+                    if (pageSelector.value === pages[i].id) {
+                        return pages[i];
+                    }
+                }
+            }
+
+            function onPageSelected() {
+                let currentPage = getSelectedPage();
+                elements = new PageElements(currentPage);
+                fetchImages();
+            }
+
+            function PageElements(currentPage) {
+                this.pageItems = currentPage.children;
+                this.frames = {}; // id: Name, isStarting, transitions {name, id, transId}
+                this.startNode = currentPage.prototypeStartNodeID;
+                this.frameIds = [];
+
+                // Iterate over all elements on the page and save necessary ones
+                for (let i = 0; i < this.pageItems.length; i++) {
+                    if (this.pageItems[i].type === 'FRAME') {
+                        let id = this.pageItems[i].id;
+                        this.frameIds.push(id);
+                        let obj = {
+                            'name': this.pageItems[i].name,
+                            'transitions': []
+                        };
+                        obj.isStartNode = this.startNode === id;
+                        findTransitions(this.pageItems[i], obj.transitions);
+                        this.frames[id] = obj;
+                    }
+                }
+            }
+
+            function findTransitions(item, transitions) {
+                if (item.transitionNodeID) {
+                    transitions.push({
+                        'name': item.name,
+                        'nodeId': item.id,
+                        'transitionNodeId': item.transitionNodeID
+                    });
+                }
+                if (item.children) {
+                    for (let i = 0; i < item.children.length; i++) {
+                        findTransitions(item.children[i], transitions);
+                    }
+                }
+            }
+
+            function fetchImages() {
+
+                const fetchUrl = 'https://api.figma.com/v1/images/' + url[2] + '?ids=' + elements.frameIds.join(',');
+                fetch(fetchUrl, requestParams)
+                    .then(function (response) {
+                        return response.json();
+                    })
+                    .then(function (imagesJson) {
+                        if (imagesJson.err !== undefined && imagesJson.err !== null) {
+                            console.error(imagesJson.err);
+                        } else {
+                            loadStates(imagesJson.images);
+                            loadCode();
+                            document.getElementById('output-container')
+                                .classList.remove('hidden');
+                        }
+                    });
+            }
+
+
+            function loadStates(imgUrls) {
+                let dataContainer = document.getElementById('output-states');
+                removeChildren(dataContainer);
+                for (let key in imgUrls) {
+                    let item = elements?.frames?.[key];
+
+                    let div = document.createElement('div');
+                    let transitions = document.createElement('div');
+                    div.classList.add('state');
+                    div.id = `state-${key}`;
+
+                    div.innerHTML = `<div class="state-name">${item?.name}</div>`;
+
+                    if (item?.isStartNode) {
+                        div.classList.add('starting', 'selected');
+                    }
+
+                    for (let i = 0; i < item?.transitions?.length; i++) {
+                        let transNodeId = item?.transitions?.[i]?.transitionNodeId;
+
+                        let trans = document.createElement('div');
+                        let transName = document.createElement('span');
+                        let transToName = document.createElement('span');
+                        trans.classList.add('transition');
+
+                        transName.innerHTML = item?.transitions?.[i]?.name;
+                        transName.classList.add(`transition-to-${transNodeId}`, 'transition-name');
+                        transName.addEventListener('click', onTransitionClick);
+
+                        transToName.innerHTML = ' -&gt ' + elements?.frames?.[transNodeId]?.name;
+
+                        trans.appendChild(transName);
+                        trans.appendChild(transToName);
+
+                        transitions.appendChild(trans);
+                    }
+                    div.appendChild(transitions);
+                    loadImage(imgUrls[key], div);
+                    dataContainer.appendChild(div);
+                }
+            }
+
+            function loadImage(src, container) {
+                let img = new Image();
+                img.addEventListener('load', function () { console.log('Image loaded'); });
+                img.addEventListener('error', function () { console.log('Image loading error.'); });
+                img.setAttribute('src', src);
+                container.appendChild(img);
+            }
+
+            function onTransitionClick(event) {
+                let selected = document.getElementsByClassName('selected')[0];
+                if (!isSelected(event.target)) return;
+                let id = event.target.classList[0].replace('transition-to-', '');
+                let transTo = document.getElementById('state-' + id);
+                selected.classList.remove('selected');
+                transTo.classList.add('selected');
+            }
+
+            function isSelected(name) {
+                let x = name;
+                while (x = x.parentNode) {
+                    if (x.classList.contains('state')) {
+                        return x.classList.contains('selected');
+                    }
+                }
+            }
+
+            function loadCode() {
+                let code = '';
+                for (let key in elements.frames) {
+                    let item = elements.frames[key];
+                    code += item?.name;
+                    if (item?.isStartNode) { code += '*'; }
+                    code += '\n';
+                    for (let i = 0; i < item.transitions.length; i++) {
+                        let transNodeId = item?.transitions[i]?.transitionNodeId;
+                        code += '  ' + item?.transitions?.[i]?.name + ' -> '
+                            + elements?.frames?.[transNodeId]?.name + '\n';
+                    }
+                    code += '\n';
+                }
+
+                let codeContainer = document.getElementById('output-code');
+                removeChildren(codeContainer);
+                codeContainer.innerHTML = code;
+            }
+
+
+        })()
+
+        function removeChildren(node) {
+            let last;
+            while (last = node.lastChild) node.removeChild(last);
+        };
+    </script>
+    <style>
+        :root {
+            --blue: #163BF3;
+            --pale-pink: #FFC6DB;
+            --bright-pink: #FF5386;
+            --dark-pink: #AF0034;
+            --dark-blue: #0000A8;
+            --darker-gray: #050505;
+            --dark-gray: #242424;
+        }
+
+        html,
+        body {
+            font-size: 18px;
+            color: #FFFFFF;
+            background: #242424;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Main building blocks */
+
+        footer,
+        header,
+        main {
+            margin: auto;
+            max-width: 680px;
+            width: 80%;
+            position: relative;
+            margin-bottom: 48px;
+        }
+
+        header p {
+            margin: 1em 0;
+        }
+
+        section {
+            margin-bottom: 5em;
+        }
+
+        h1 {
+            font-size: 64px;
+            margin-bottom: 12px;
+        }
+
+        h2 {
+            font-size: 42px;
+        }
+
+        p {
+            line-height: 1.5;
+            margin: 1.5em 0;
+        }
+
+        li {
+            margin: .5em 0;
+        }
+
+        footer {
+            border-top: 1px solid #FF5386;
+            margin-top: 128px;
+            margin-bottom: 128px;
+        }
+
+        /* Links  */
+        a,
+        a:link,
+        a:visited {
+            color: #FFFFFF;
+            text-decoration: none;
+            border: 1px solid #FF5386;
+            padding: 4px;
+        }
+
+        a:hover {
+            background: #163BF3;
+        }
+
+        a:active,
+        a:focus {
+            background: #163BF3;
+            outline: 2px solid #FF5386;
+            border-color: transparent;
+        }
+
+        /* Select */
+        select {
+            font-size: 18px;
+            padding: 8px 32px;
+            background-color: transparent;
+            color: #FFFFFF;
+            flex-grow: 1;
+            outline: 1px solid #FF5386;
+            border: none;
+            margin: 5px 8px;
+        }
+
+        label {
+            padding: 8px 16px;
+            margin: 4px 8px;
+        }
+
+        /* Inputs */
+
+        input {
+            font-size: 18px;
+            color: #FFFFFF;
+
+            padding: 8px 16px;
+            margin: 4px 8px;
+
+            background: none;
+            border: none;
+        }
+
+        input[type=text],
+        input[type=url] {
+            min-width: 300px;
+            flex-grow: 1;
+            border: 1px solid transparent;
+            border-bottom: 1px solid #FF5386;
+        }
+
+        input[type=button] {
+            border: 1px solid #FF5386;
+            cursor: pointer;
+        }
+
+        input[disabled],
+        select[disabled] {
+            background: transparent !important;
+            border-color: #FFFFFF69;
+            outline-color: #FFFFFF69;
+            color: #FFFFFF69;
+            cursor: not-allowed;
+        }
+
+        input:focus,
+        select:focus {
+            outline: 2px solid #FF5386;
+            border-color: transparent;
+        }
+
+        input:active,
+        input:hover,
+        select:active,
+        select:hover {
+            background: #163BF3;
+        }
+
+        input::placeholder {
+            color: #FFFFFF99;
+            opacity: 1;
+        }
+
+        .inputs-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            margin: 16px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media only screen and (max-width: 500px) {
+
+            h1 {
+                font-size: 48px;
+                margin-bottom: 0.4em;
+            }
+
+            h2 {
+                font-size: 30px;
+            }
+
+            p {
+                font-size: 16px;
+                line-height: 1.5;
+            }
+
+        }
+
+
+        .transition-name {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .transition-name:hover {
+            color: #FF5386;
+        }
+
+        .state {
+            background: #050505;
+            padding: 1em;
+            border: 4px solid transparent;
+        }
+
+        .starting {
+            border-color: #FF5386;
+        }
+
+        .selected {
+            background: #AF0034;
+        }
+
+        #output-code {
+            cursor: text;
+        }
+
+        #output-code-container {
+            margin-top: 3em;
+            background: #050505;
+            padding: 1em;
+            cursor: pointer;
+        }
+
+        #output-code-container:hover {
+            background: #151515;
+        }
+
+        #output-code-container:active {
+            background: #242424;
+        }
+    </style>
+</body>
+</html>
