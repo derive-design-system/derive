@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <title>Figma charts</title>
     <meta name="description" content="Turn Figma prototypes into statecharts.">
@@ -9,41 +10,45 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
 </head>
+
 <body>
     <header>
-        <h1>
-            Derive Systems
-        </h1>
-            <!-- add Derive Systems logo -->
-            <a class="logo">
-                <svg viewBox="0 0 100 100">
-                    <ellipse/>
-                    <text x="50%" y="50%">دي</text>
-                </svg>
-                <style>
-                    .logo svg {
-                        /* width: 200px; */
-                        /* height: 200px; */
-                        stroke: white;
-                        /* stroke-width: 1.1; */
-                        fill: none;
-                    }
-                    .logo svg ellipse {
-                        cx: 51;
-                        cy: 46;
-                        rx: 10;
-                        ry: 8;
-                        stroke: white;
-                        stroke-width: 1.6;
-                        fill: none;
-                    }
-                    .logo svg text {
-                        stroke-width: 0.1;
-                        text-anchor: middle;
-                        fill: white;
-                    }
-                </style>
-            </a>
+        <!-- add Derive Systems logo -->
+        <a class="logo">
+            <svg viewBox="0 0 99 30">
+                <text class="logoName" x="0%" y="50%">Derive</text>
+                <text class="logoGlyph" x="53%" y="50%">دى</text>
+            </svg>
+            <style>
+                .logo {
+                    display: flex;
+                }
+
+                .logo svg {
+                    width: 200px;
+                    height: 200px;
+                    stroke: var(--stroke);
+                    /* stroke-width: 1.1; */
+                    fill: var(--fill);
+                }
+
+                .logo svg .logoName {
+                    stroke-width: 0.3;
+                    fill: var(--fill);
+                }
+
+                .logo svg .logoGlyph {
+                    stroke-width: 0.3;
+                    fill: var(--fill);
+                }
+
+                /* add css variable fill #544949 */
+                :root {
+                    --fill: #302f2d;
+                    --stroke: #ffd414;
+                }
+            </style>
+        </a>
         </h1>
     </header>
     <main>
@@ -585,4 +590,5 @@
         }
     </style>
 </body>
+
 </html>
