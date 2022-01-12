@@ -1,0 +1,54 @@
+* Deriving statecharts from Figma prototypes.
+
+Today I want to show you how create models from Figma prototypes to derive™:) and create functional prototypes that can later be used to analyze the prototypes themselves, but also in the implementation and testing phases of product releases.
+
+* What I hope you take away from this talk:
+
+I hope you'll gain insight into how to get more concrete data from your Figma prototypes and then turn that data into state diagrams that will help you collaborate with business people and developers on your team.
+
+Super stretch goal and hope: that this could help us derive™ a new design system for Deriv™.
+
+* Deriving™ statecharts from Figma prototypes.
+
+Today I would like to present how you can extract more generalized models from Figma prototypes to derive™ and create functional protypes that can be later used to analyze prototypes themselves but moreover used later in implementation, and testing phases of products releases.
+
+* What I hope you take away from this talk
+
+I hope you'll gain insight into how to get more concrete data from your Figma prototypes and then turn that data into statecharts that will help you collaborate with business people and developers on your team.
+
+Super stretch goal and hope: that this could help us derive™ new awesome design system 
+
+* Introduction: Finite State Machines
+
+Finite State Machines (FSMs) are a way to model behavior of systems.
+
+[[https://user-images.githubusercontent.com/11357486/147692801-f7e3ad6f-4979-468e-a0ef-ad1430002c20.png]]
+
+A state machine consists of a set of states, some of which may be active at any given time. The active states are referred to as the "current state" or. An "event" can change the active states.
+
+To model a state machine, all we need is a set of states, each with a unique name, and a set of possible events or conditions.
+
+[[https://user-images.githubusercontent.com/11357486/147693082-b2eb0543-0a3a-4351-a9d0-9629c348f856.png]]
+
+[[https://images.ctfassets.net/c1zhnszcah7h/7qCPuzmLnOe2gA2q6lifMU/19122a9b9464f6c5efbcb8d6039d9582/05_motion-study.gif]]
+Inspect spotify micro UI interaction: [[https://codepen.io/adamrybins/full/ExvNeeX]] 
+
+* Figma and UI Statecharts
+
+Figma is a prototyping app that lets you create interactive prototypes. This means that you can describe the desired behavior of each part in your product and relation to other existing parts.
+
+Figma allows you to model in the canvas (canvas element of the web browser). This provides the flexibility to express the design very quickly through combination of various images and text. However, it is later responsibility of the frontend developers and quality assurance engineers to decipher the correct behavior of the prototyped system during the implementation and testing phase (with very welcomed help of design of course :) 
+
+* Deriving statecharts from Figma prototypes
+
+Get Figma Token:
+[[https://user-images.githubusercontent.com/11357486/149236426-6ef4eee8-469f-4a98-bb0d-f9e2b2d51f28.png]]
+
+Go to: [[https://derive-design-system.github.io/derive/figma-charts.html]]
+
+* Conclusion
+Statecharts are a visual model of how the system should behave, and it is a good way to model the behavior of designed prototypes. Statecharts can be derived™ from figma prototypes, which we as designers of prototypes can use to create a developer and business friendly representation of the design system.
+
+* Resources
+[[https://spotify.design/article/bringing-the-spotify-heart-to-life]] Spotify Design team
+[[https://statecharts.dev/]] More statecharts resources
