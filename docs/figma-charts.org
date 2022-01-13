@@ -1,12 +1,18 @@
 * Deriving statecharts from Figma prototypes.
 
-Today I want to show you how create models from Figma prototypes to derive™:) and create functional prototypes that can later be used to analyze the prototypes themselves, but also in the implementation and testing phases of product releases.
+Today I want to show you how create models from Figma prototypes to derive™ and create functional prototypes that can later be used to analyze the prototypes themselves, but also in the implementation and testing phases of product releases.
 
 * What I hope you take away from this talk:
 
 I hope you'll gain insight into how to get more concrete data from your Figma prototypes and then turn that data into state diagrams that will help you collaborate with business people and developers on your team.
 
-Super stretch goal and hope: that this could help us derive™ a new design system for Deriv™.
+Super stretch goal and hope: that this could help us derive™ a solid™ design system for Deriv™.
+
+[[https://user-images.githubusercontent.com/11357486/149269238-2eae37d6-78ed-4c48-8355-896e9dbd9db0.png]]
+
+Derive™ this design system:
+
+[[https://user-images.githubusercontent.com/11357486/149269720-1ff23031-8a77-486e-a377-e320e31cbf53.png]]
 
 * Deriving™ statecharts from Figma prototypes.
 
@@ -30,8 +36,10 @@ To model a state machine, all we need is a set of states, each with a unique nam
 
 [[https://user-images.githubusercontent.com/11357486/147693082-b2eb0543-0a3a-4351-a9d0-9629c348f856.png]]
 
+* Inspect spotify micro UI interaction: [[https://codepen.io/adamrybins/full/ExvNeeX]] 
+
 [[https://images.ctfassets.net/c1zhnszcah7h/7qCPuzmLnOe2gA2q6lifMU/19122a9b9464f6c5efbcb8d6039d9582/05_motion-study.gif]]
-Inspect spotify micro UI interaction: [[https://codepen.io/adamrybins/full/ExvNeeX]] 
+
 
 * Figma and UI Statecharts
 
@@ -39,7 +47,7 @@ Figma is a prototyping app that lets you create interactive prototypes. This mea
 
 Figma allows you to model in the canvas (canvas element of the web browser). This provides the flexibility to express the design very quickly through combination of various images and text. However, it is later responsibility of the frontend developers and quality assurance engineers to decipher the correct behavior of the prototyped system during the implementation and testing phase (with very welcomed help of design of course :) 
 
-* Deriving statecharts from Figma prototypes
+* Deriving™ statecharts from Figma prototypes
 
 Get Figma Token:
 [[https://user-images.githubusercontent.com/11357486/149236426-6ef4eee8-469f-4a98-bb0d-f9e2b2d51f28.png]]
